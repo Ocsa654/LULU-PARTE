@@ -1,0 +1,742 @@
+
+================================================================================
+PÁGINA 1
+================================================================================
+
+PARTE 1: SAM - FUNDAMENTOS Y AUTENTICACIÓN 
+BLOQUE 1: Configuración Inicial del Proyecto (PRIMERA PRIORIDAD) 
+Qué debe entregar: 
+• Proyecto Node.js + TypeScript inicializado 
+• Archivo de configuración de base de datos (conexión a PostgreSQL) 
+• Archivo de variables de entorno con TODAS las variables necesarias 
+• Docker compose para PostgreSQL local 
+• README con instrucciones de instalación y ejecución 
+• Estructura de carpetas completa creada (vacía, pero con la estructura) 
+• Dependencias de otros: NINGUNA (empieza primero) 
+• Otros dependen de: TODO EL EQUIPO necesita que termine esto primero 
+BLOQUE 2: Base de Datos y Modelos ORM 
+Qué debe implementar: 
+• Ejecutar el script SQL de creación de base de datos (del documento PDF) 
+• Configurar ORM (TypeORM) para conectar a PostgreSQL 
+• Crear TODOS los modelos/entidades según el esquema de base de datos: 
+o usuarios 
+o materias 
+o matriculas 
+o temas 
+o subtemas 
+o ejercicios 
+o intentos_ejercicios 
+o progreso 
+o preguntas_quiz 
+o opciones_respuesta 
+o intentos_quiz 
+o retroalimentacion_llm 
+• Cada modelo debe tener: 
+
+================================================================================
+PÁGINA 2
+================================================================================
+
+o Todas las columnas según el schema SQL 
+o Relaciones definidas (OneToMany, ManyToOne, etc.) 
+o Validaciones básicas 
+o Tipos correctos 
+• Dependencias de otros: NINGUNA 
+• Otros dependen de: Toño, Pancho y Lulu necesitan los modelos para sus servicios 
+BLOQUE 3: Middleware de Infraestructura 
+Qué debe implementar: 
+• authMiddleware.ts 
+o Verificar que el token JWT sea válido 
+o Extraer información del usuario del token 
+o Adjuntar usuario al request para que esté disponible en los controladores 
+• roleMiddleware.ts 
+o Verificar que el usuario tenga el rol necesario (estudiante/profesor/admin) 
+o Retornar error 403 si no tiene permisos 
+• errorHandler.ts 
+o Middleware global para capturar errores 
+o Formatear errores según estándar definido 
+o Loguear errores 
+• rateLimiter.ts 
+o Limitar requests por IP/usuario 
+o Protección contra ataques DoS 
+o Configuración desde variables de entorno 
+• validator.ts 
+o Middleware para validar datos de entrada 
+o Usar librería de validación (joi o similar) 
+• Dependencias de otros: NINGUNA 
+• Otros dependen de: Toño y Pancho usarán authMiddleware en sus rutas protegidas 
+BLOQUE 4: Sistema de Logging 
+
+================================================================================
+PÁGINA 3
+================================================================================
+
+Qué debe implementar: 
+• Configuración de Winston (o similar) 
+• Logs en consola para desarrollo 
+• Logs en archivo para producción 
+• Niveles: error, warn, info, debug 
+• Formato consistente con timestamp 
+• Dependencias de otros: NINGUNA 
+• Otros dependen de: Todos usarán el logger 
+BLOQUE 5: Servicio de Autenticación 
+Endpoints a implementar: 
+• POST /api/v1/auth/registro 
+o Recibir: email, contraseña, nombre, apellido, rol, matricula 
+o Validar que el email no exista 
+o Hashear contraseña con bcrypt 
+o Crear usuario en base de datos 
+o Retornar mensaje de éxito 
+• POST /api/v1/auth/login 
+o Recibir: email, contraseña 
+o Validar credenciales 
+o Generar access token (JWT, corta duración) 
+o Generar refresh token (larga duración, guardar en BD) 
+o Retornar ambos tokens 
+• POST /api/v1/auth/refresh-token 
+o Recibir: refresh token 
+o Validar que el refresh token sea válido y exista en BD 
+o Generar nuevo access token 
+o Retornar nuevo access token 
+• POST /api/v1/auth/logout 
+o Recibir: refresh token 
+
+================================================================================
+PÁGINA 4
+================================================================================
+
+o Invalidar/eliminar refresh token de BD 
+o Retornar mensaje de éxito 
+Lógica de negocio (AuthService): 
+• Hasheo seguro de contraseñas (bcrypt con salt) 
+• Generación de JWT con información del usuario 
+• Validación de tokens 
+• Gestión de refresh tokens en base de datos 
+• Dependencias de otros: Necesita los modelos (Usuario) 
+• Otros dependen de: Todos necesitan autenticación funcional 
+BLOQUE 6: Servicio de Usuarios 
+Endpoints a implementar: 
+• GET /api/v1/usuarios/perfil 
+o Requiere autenticación (usar authMiddleware) 
+o Obtener información del usuario autenticado 
+o Retornar: id, email, nombre, apellido, rol, matricula, foto_perfil 
+• PUT /api/v1/usuarios/perfil 
+o Requiere autenticación 
+o Recibir: nombre, apellido, foto_perfil 
+o Actualizar datos del usuario 
+o NO permitir cambiar email, rol o contraseña aquí 
+o Retornar datos actualizados 
+• GET /api/v1/usuarios/progreso 
+o Requiere autenticación 
+o Obtener progreso general del usuario en todas sus materias 
+o Calcular estadísticas: materias inscritas, temas completados, promedio general 
+o Retornar datos agregados de progreso 
+• Dependencias de otros: Toño debe implementar cálculo de progreso por materia 
+• Otros dependen de: Nadie directamente 
+RESUMEN DE ENTREGABLES DE SAM: 
+
+================================================================================
+PÁGINA 5
+================================================================================
+
+• Proyecto configurado y ejecutándose 
+• Base de datos PostgreSQL con todas las tablas creadas 
+• 12 modelos ORM completamente funcionales 
+• 5 middleware de infraestructura 
+• Sistema de logging configurado 
+• 4 endpoints de autenticación funcionando 
+• 3 endpoints de usuarios funcionando 
+• Documentación de cómo otros deben usar authMiddleware 
+• Archivo shared.ts con interfaces que otros usarán 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+================================================================================
+PÁGINA 6
+================================================================================
+
+PARTE 2: TOÑO - CONTENIDO Y PROGRESO 
+BLOQUE 1: Servicio de Materias 
+Endpoints a implementar: 
+• GET /api/v1/materias 
+o Requiere autenticación 
+o Listar todas las materias disponibles 
+o Incluir: id, nombre, código, descripción, semestre, créditos 
+o Opcionalmente filtrar por semestre 
+• GET /api/v1/materias/:id 
+o Requiere autenticación 
+o Obtener detalles completos de una materia específica 
+o Incluir: todos los datos de la materia + lista de temas + prerequisitos 
+• POST /api/v1/materias/:id/matricular 
+o Requiere autenticación 
+o Matricular al usuario autenticado en una materia 
+o Validar que no esté ya matriculado 
+o Validar prerequisitos si existen 
+o Crear registro en tabla matriculas 
+o Retornar confirmación 
+• Dependencias de otros: Necesita modelos de Sam (Materia, Matricula) 
+• Otros dependen de: Pancho necesita que existan matrículas 
+BLOQUE 2: Servicio de Contenido Educativo 
+Endpoints a implementar: 
+• GET /api/v1/materias/:materia_id/temas 
+o Requiere autenticación 
+o Listar todos los temas de una materia 
+o Ordenar por campo 'orden' 
+o Incluir: id, nombre, descripción, orden 
+• GET /api/v1/temas/:tema_id 
+
+================================================================================
+PÁGINA 7
+================================================================================
+
+o Requiere autenticación 
+o Obtener detalles de un tema específico 
+o Incluir: datos del tema + contenido + lista de subtemas 
+• GET /api/v1/temas/:tema_id/subtemas 
+o Requiere autenticación 
+o Listar todos los subtemas de un tema 
+o Ordenar por campo 'orden' 
+o Incluir: id, nombre, descripción, orden 
+• GET /api/v1/subtemas/:subtema_id 
+o Requiere autenticación 
+o Obtener detalles completos de un subtema 
+o Incluir: todos los datos + contenido_detalle + lista de ejercicios disponibles 
+• Dependencias de otros: Necesita modelos de Sam 
+• Otros dependen de: Pancho necesita subtemas para asociar ejercicios 
+BLOQUE 3: Servicio de Progreso 
+Endpoints a implementar: 
+• GET /api/v1/usuarios/progreso/:materia_id 
+o Requiere autenticación 
+o Obtener progreso detallado del usuario en una materia específica 
+o Calcular: 
+▪ Porcentaje de temas completados 
+▪ Porcentaje de subtemas completados 
+▪ Promedio de calificaciones en ejercicios 
+▪ Promedio de calificaciones en quizzes 
+▪ Últimos accesos 
+o Retornar: progreso por tema, progreso por subtema, estadísticas 
+• POST /api/v1/progreso/actualizar (interno, llamado por Pancho) 
+o Actualizar tabla progreso cuando un estudiante complete ejercicios o quizzes 
+o Recibir: usuario_id, tema_id, subtema_id, nuevo_estado 
+
+================================================================================
+PÁGINA 8
+================================================================================
+
+o Calcular y actualizar porcentaje_completado 
+o Actualizar fecha_ultimo_acceso 
+Lógica de negocio: 
+• Determinar cuándo un tema está "completado" (ej: 80% de ejercicios correctos) 
+• Determinar cuándo un subtema está "completado" 
+• Calcular porcentajes agregados 
+• Dependencias de otros: 
+o Necesita modelos de Sam 
+o Pancho llamará a actualizar progreso cuando se envíen ejercicios/quizzes 
+• Otros dependen de: Sam usa esto en GET /usuarios/progreso 
+BLOQUE 4: Servicio de Reportes 
+Endpoints a implementar: 
+• GET /api/v1/reportes/desempeño/:usuario_id 
+o Requiere autenticación 
+o Si es estudiante: solo puede ver su propio reporte 
+o Si es profesor/admin: puede ver de cualquier estudiante 
+o Generar reporte con: 
+▪ Materias cursadas 
+▪ Progreso en cada materia 
+▪ Calificaciones promedio 
+▪ Ejercicios completados vs totales 
+▪ Quizzes completados vs totales 
+▪ Gráfica de progreso temporal 
+• GET /api/v1/reportes/progreso/:materia_id 
+o Requiere autenticación 
+o Obtener progreso de TODOS los estudiantes en una materia (solo profesor/admin) 
+o Usar roleMiddleware de Sam 
+o Retornar lista de estudiantes con su progreso 
+• GET /api/v1/admin/reportes/clase 
+
+================================================================================
+PÁGINA 9
+================================================================================
+
+o Requiere rol de profesor o admin (usar roleMiddleware) 
+o Generar reporte de toda la clase: 
+▪ Total de estudiantes 
+▪ Promedio general de la clase 
+▪ Temas con mayor dificultad (más intentos fallidos) 
+▪ Estudiantes con bajo desempeño (alertas) 
+o Retornar datos agregados 
+• Dependencias de otros: 
+o Necesita modelos de Sam 
+o Necesita datos de progreso ya calculados 
+• Otros dependen de: Nadie 
+RESUMEN DE ENTREGABLES DE TOÑO: 
+• 3 endpoints de materias funcionando 
+• 4 endpoints de contenido educativo funcionando 
+• 2 endpoints de progreso (1 público, 1 interno) 
+• 3 endpoints de reportes funcionando 
+• Lógica de cálculo de progreso completada 
+• Validación de prerequisitos de materias 
+• Función para que Pancho actualice progreso 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+================================================================================
+PÁGINA 10
+================================================================================
+
+ 
+PARTE 3: PANCHO - EVALUACIÓN (EJERCICIOS Y QUIZZES) 
+BLOQUE 1: Servicio de Ejercicios 
+Endpoints a implementar: 
+• GET /api/v1/ejercicios/subtema/:subtema_id 
+o Requiere autenticación 
+o Listar todos los ejercicios de un subtema 
+o Incluir: id, enunciado, dificultad, tipo_ejercicio, puntos_maximos 
+o NO incluir codigo_solucion (es secreto) 
+o Incluir codigo_base si existe 
+• GET /api/v1/ejercicios/:id 
+o Requiere autenticación 
+o Obtener detalles completos de un ejercicio específico 
+o Incluir: enunciado, dificultad, codigo_base, tipo_ejercicio, casos_prueba (sin 
+resultados esperados secretos) 
+• POST /api/v1/ejercicios/:id/enviar (ENDPOINT MÁS IMPORTANTE) 
+o Requiere autenticación 
+o Recibir: codigo_enviado 
+o Proceso: 
+1. Validar que el usuario esté matriculado en la materia del ejercicio 
+2. Guardar intento en tabla intentos_ejercicios (estado: "procesando") 
+3. Preparar payload para enviar a Lulu (GeminiIntegrationService) 
+4. Llamar a servicio de Lulu para validar código 
+5. Recibir respuesta de Lulu con resultado y retroalimentación 
+6. Actualizar intento con resultado y puntos 
+7. Llamar a Toño para actualizar progreso 
+8. Retornar resultado al estudiante 
+• GET /api/v1/ejercicios/:id/intentos 
+o Requiere autenticación 
+
+================================================================================
+PÁGINA 11
+================================================================================
+
+o Ver historial de intentos del usuario en un ejercicio específico 
+o Incluir: codigo_enviado, resultado, puntos_obtenidos, retroalimentacion, 
+timestamp 
+o Ordenar por más reciente primero 
+Lógica de negocio (ExerciseService): 
+• Validar que usuario tenga acceso al ejercicio 
+• Gestionar historial de intentos 
+• Comunicarse con servicio de Lulu para validación 
+• Determinar puntos según resultado (correcto = puntos_maximos, parcial = proporcional) 
+Interface de comunicación con Lulu: 
+TypeScript 
+// Pancho envía esto a Lulu 
+{ 
+  codigo_enviado: string; 
+  ejercicio_id: number; 
+  usuario_id: number; 
+  casos_prueba: any; 
+  lenguaje: string; 
+} 
+ 
+// Lulu responde esto a Pancho 
+{ 
+  resultado: 'correcto' | 'incorrecto' | 'error'; 
+  puntos_obtenidos: number; 
+  retroalimentacion_llm: string; 
+  errores_encontrados: string[]; 
+  casos_prueba_pasados: number; 
+  casos_prueba_totales: number; 
+} 
+
+================================================================================
+PÁGINA 12
+================================================================================
+
+• Dependencias de otros: 
+o Necesita modelos de Sam 
+o Necesita función de actualizar progreso de Toño 
+o Necesita servicio de validación de Lulu 
+• Otros dependen de: Lulu necesita que este servicio le envíe el código a validar 
+BLOQUE 2: Servicio de Quizzes 
+Endpoints a implementar: 
+• GET /api/v1/quiz/subtema/:subtema_id/preguntas 
+o Requiere autenticación 
+o Obtener preguntas de quiz para un subtema 
+o Opción 1: Buscar preguntas existentes en BD generadas por Lulu 
+o Opción 2: Si no hay suficientes, solicitar a Lulu que genere nuevas 
+o Retornar: lista de preguntas con sus opciones 
+o NO revelar cuál es la respuesta correcta 
+• POST /api/v1/quiz/responder 
+o Requiere autenticación 
+o Recibir: pregunta_id, opcion_seleccionada_id 
+o Verificar si la opción es correcta 
+o Registrar intento en intentos_quiz 
+o Calcular puntos 
+o Actualizar progreso (llamar a Toño) 
+o Retornar: es_correcta (boolean), explicacion, puntos_obtenidos 
+• GET /api/v1/quiz/resultados/:usuario_id 
+o Requiere autenticación 
+o Si es estudiante: solo puede ver sus propios resultados 
+o Si es profesor/admin: puede ver de cualquier estudiante 
+o Obtener historial de intentos de quizzes 
+o Calcular estadísticas: total intentos, correctos, incorrectos, promedio 
+o Retornar resultados agregados 
+
+================================================================================
+PÁGINA 13
+================================================================================
+
+• POST /api/v1/quiz/generar-preguntas (interno, llamado automáticamente o por admin) 
+o Solicitar a Lulu que genere nuevas preguntas para un subtema 
+o Recibir preguntas generadas 
+o Almacenar en tabla preguntas_quiz y opciones_respuesta 
+o Retornar cantidad de preguntas generadas 
+Lógica de negocio (QuizService): 
+• Gestionar banco de preguntas (reutilizar las generadas, evitar repetir recientes) 
+• Calificar respuestas automáticamente 
+• Registrar intentos con timestamp 
+• Calcular estadísticas 
+Interface de comunicación con Lulu: 
+TypeScript 
+// Pancho solicita a Lulu 
+{ 
+  subtema_id: number; 
+  cantidad: number; 
+  dificultad: 'básica' | 'intermedia' | 'avanzada'; 
+  contexto_estudiante: {...} 
+} 
+ 
+// Lulu responde a Pancho 
+{ 
+  preguntas: [ 
+    { 
+      texto: string; 
+      opciones: [...]; 
+      dificultad: string; 
+      retroalimentacion_correcta: string; 
+      retroalimentacion_incorrecta: string; 
+
+================================================================================
+PÁGINA 14
+================================================================================
+
+    } 
+  ] 
+} 
+• Dependencias de otros: 
+o Necesita modelos de Sam 
+o Necesita función de actualizar progreso de Toño 
+o Necesita servicio de generación de preguntas de Lulu 
+• Otros dependen de: Lulu almacena las preguntas que genera aquí 
+RESUMEN DE ENTREGABLES DE PANCHO: 
+• 4 endpoints de ejercicios funcionando 
+• 4 endpoints de quizzes funcionando 
+• Lógica de envío y validación de código con Lulu 
+• Sistema de calificación automática de quizzes 
+• Gestión de banco de preguntas 
+• Integración con servicio de progreso de Toño 
+• Historial completo de intentos 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+================================================================================
+PÁGINA 15
+================================================================================
+
+PARTE 4: LULU - INTEGRACIÓN DE IA Y RETROALIMENTACIÓN 
+BLOQUE 1: Configuración de Gemini 
+Qué debe implementar: 
+• Configuración del SDK de Google Generative AI 
+• Archivo de configuración con API key 
+• Clase/servicio GeminiClient reutilizable 
+• Manejo de errores de la API 
+• Retry logic para errores temporales 
+• Dependencias de otros: Necesita variables de entorno de Sam 
+• Otros dependen de: Todos los servicios de IA dependen de esta configuración 
+BLOQUE 2: Rate Limiter Específico para Gemini 
+Qué debe implementar: 
+• Middleware geminiRateLimiter.ts 
+• Control de 15 requests por minuto (free tier) 
+• Cola de requests si se excede el límite 
+• Sistema para esperar antes de enviar siguiente request 
+• Logs de uso de rate limit 
+Lógica: 
+• Mantener contador de requests en ventana de 60 segundos 
+• Si se alcanza límite, encolar requests pendientes 
+• Procesar cola cuando se libere espacio 
+• Alertar cuando se alcance 80% del límite diario (1500 requests) 
+• Dependencias de otros: NINGUNA 
+• Otros dependen de: Todos los endpoints de IA deben usar este rate limiter 
+BLOQUE 3: Sistema de Caché Inteligente 
+Qué debe implementar: 
+• CacheService para reutilizar respuestas de Gemini 
+• Cachear preguntas generadas (por subtema + dificultad) 
+• Cachear retroalimentación de errores comunes (por código similar) 
+
+================================================================================
+PÁGINA 16
+================================================================================
+
+• TTL (tiempo de vida) de 7 días para preguntas 
+• Hash de código para identificar similitudes 
+Lógica: 
+• Antes de llamar a Gemini, buscar en caché 
+• Si existe y es reciente (< 7 días), usar caché 
+• Si no existe, llamar a Gemini y guardar en caché 
+• Para código: generar hash MD5 del código para comparar 
+• Dependencias de otros: Necesita modelo de Sam (RetroalimentacionLLM, 
+preguntas_quiz) 
+• Otros dependen de: Reduce drásticamente las llamadas a Gemini (ahorra límites) 
+BLOQUE 4: Servicio de Validación de Código 
+Función interna (Pancho la llama): 
+validateCode(request: CodeValidationRequest): CodeValidationResponse 
+Proceso: 
+1. Verificar rate limiter 
+2. Buscar en caché si hay retroalimentación similar 
+3. Si no hay caché: 
+o Construir prompt de sistema (Prompt 2 del documento) 
+o Incluir: código del estudiante, enunciado, código de referencia 
+o Llamar a Gemini API 
+o Parsear respuesta 
+o Analizar código: 
+▪ Verificar sintaxis 
+▪ Comparar con solución esperada 
+▪ Identificar errores 
+o Generar retroalimentación pedagógica 
+o Determinar resultado: correcto/incorrecto/error 
+o Calcular puntos proporcionales 
+4. Guardar en caché y en tabla retroalimentacion_llm 
+
+================================================================================
+PÁGINA 17
+================================================================================
+
+5. Retornar resultado a Pancho 
+Prompts a implementar: 
+• Prompt 2 del documento PDF (página 26): Análisis y Retroalimentación de Código 
+• Debe generar retroalimentación constructiva, educativa, paso a paso 
+• Dependencias de otros: Pancho llama esta función 
+• Otros dependen de: Pancho espera la respuesta para completar el flujo 
+BLOQUE 5: Servicio de Generación de Preguntas 
+Función interna (Pancho la llama): 
+generateQuestions(request: GenerarPreguntasRequest): PreguntaGenerada[] 
+Proceso: 
+1. Verificar rate limiter 
+2. Buscar en caché preguntas existentes (subtema + dificultad, < 7 días) 
+3. Si hay suficientes en caché, retornarlas 
+4. Si no hay suficientes: 
+o Obtener contexto del subtema (contenido_detalle de BD) 
+o Construir prompt de sistema (Prompt 1 del documento) 
+o Llamar a Gemini API 
+o Parsear respuesta JSON 
+o Validar formato 
+5. Guardar preguntas en BD (tabla preguntas_quiz y opciones_respuesta) 
+6. Retornar preguntas a Pancho 
+Prompts a implementar: 
+• Prompt 1 del documento PDF (página 25): Generación de Preguntas 
+• Generar JSON estructurado 
+• 4 opciones por pregunta 
+• Distractores plausibles 
+• Explicaciones pedagógicas 
+• Dependencias de otros: Pancho llama esta función 
+• Otros dependen de: Pancho almacena las preguntas generadas 
+
+================================================================================
+PÁGINA 18
+================================================================================
+
+BLOQUE 6: Endpoints Directos de Gemini (Opcionales pero útiles) 
+Endpoints a implementar: 
+• POST /api/v1/gemini/chat 
+o Requiere autenticación 
+o Chat abierto con el asistente educativo 
+o Mantener contexto de conversación (historial) 
+o Usar Prompt 3 del documento (página 27) 
+o Aplicar rate limiter 
+o Retornar respuesta del asistente 
+• POST /api/v1/gemini/explicar-concepto 
+o Requiere autenticación 
+o Recibir: tema, subtema, concepto específico 
+o Generar explicación pedagógica con Gemini 
+o Usar ejemplos y analogías 
+o Retornar explicación 
+• POST /api/v1/gemini/generar-explicacion 
+o Requiere autenticación 
+o Recibir: código, lenguaje 
+o Generar explicación línea por línea del código 
+o Retornar explicación educativa 
+Prompts a implementar: 
+• Prompt 3 del documento PDF (página 27): Chat Asistente Educativo 
+• Dependencias de otros: Necesita authMiddleware de Sam 
+• Otros dependen de: Nadie (son endpoints extras para estudiantes) 
+BLOQUE 7: Servicio de Retroalimentación General 
+Endpoints a implementar: 
+• GET /api/v1/retroalimentacion/:usuario_id 
+o Requiere autenticación 
+o Obtener historial de retroalimentación generada para un usuario 
+
+================================================================================
+PÁGINA 19
+================================================================================
+
+o Filtrar por tipo (código, quiz, chat) 
+o Retornar lista de retroalimentaciones con contexto 
+• POST /api/v1/retroalimentacion/generar 
+o Requiere autenticación 
+o Endpoint general para generar retroalimentación personalizada 
+o Recibir: contexto (puede ser código, respuesta de quiz, pregunta general) 
+o Llamar a Gemini 
+o Almacenar en tabla retroalimentacion_llm 
+o Retornar retroalimentación 
+• Dependencias de otros: Necesita modelos de Sam 
+• Otros dependen de: Nadie 
+BLOQUE 8: Sistema de Monitoreo de Uso 
+Qué debe implementar: 
+• Función monitorGeminiUsage (del documento, página 28) 
+• Registrar cada llamada a Gemini en tabla de tracking: 
+o Fecha/hora 
+o Tipo de request 
+o Tokens estimados 
+o Si fue caché o API real 
+o Tiempo de respuesta 
+• Dashboard/endpoint para ver estadísticas: 
+o Requests hoy 
+o Requests este mes 
+o Porcentaje de uso del límite diario 
+o Promedio de tiempo de respuesta 
+o Tasa de acierto de caché 
+• Sistema de alertas: 
+o Enviar notificación cuando se alcance 80% del límite diario 
+o Enviar alerta cuando se alcance 95% 
+
+================================================================================
+PÁGINA 20
+================================================================================
+
+• Endpoint: 
+o GET /api/v1/gemini/stats (solo admin) 
+o Requiere rol admin 
+o Retornar estadísticas de uso de Gemini 
+• Dependencias de otros: NINGUNA 
+• Otros dependen de: Importante para no exceder límites gratuitos 
+RESUMEN DE ENTREGABLES DE LULU: 
+• Configuración de Gemini SDK funcionando 
+• Rate limiter de 15 RPM implementado 
+• Sistema de caché inteligente funcionando 
+• Función validateCode para Pancho 
+• Función generateQuestions para Pancho 
+• 3 endpoints directos de Gemini 
+• 2 endpoints de retroalimentación general 
+• Sistema de monitoreo y alertas 
+• Los 3 prompts del documento implementados 
+• Documentación de cómo Pancho debe llamar sus funciones 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+ 
+
+================================================================================
+PÁGINA 21
+================================================================================
+
+DEPENDENCIAS Y ORDEN DE DESARROLLO 
+1: 
+• Sam: Configuración del proyecto + Base de datos + Modelos 
+• Resto: Espera a que Sam termine modelos 
+2: 
+• Sam: Middleware + Autenticación 
+• Toño: Inicia servicios de contenido (usa modelos de Sam) 
+• Lulu: Configuración de Gemini + Rate limiter + Caché 
+3: 
+• Sam: Termina servicio de usuarios 
+• Toño: Termina servicios de contenido + Inicia progreso 
+• Pancho: Inicia servicio de ejercicios (usa modelos de Sam) 
+• Lulu: Implementa validación de código 
+4: 
+• Toño: Termina progreso + Reportes 
+• Pancho: Integra con Lulu para validación + Inicia quizzes 
+• Lulu: Implementa generación de preguntas 
+5: 
+• Pancho: Termina quizzes + Integra generación de preguntas 
+• Lulu: Endpoints directos + Retroalimentación + Monitoreo 
+6: 
+• Todos: Testing + Integración + Corrección de bugs 
+ 
+CRITERIOS DE ACEPTACIÓN 
+Para Sam: 
+• Otro miembro del equipo puede clonar el repo y ejecutar el proyecto siguiendo el README 
+• Se puede hacer login y obtener un token JWT válido 
+• authMiddleware rechaza tokens inválidos correctamente 
+• Todos los 12 modelos están creados y tienen relaciones correctas 
+
+================================================================================
+PÁGINA 22
+================================================================================
+
+• Base de datos tiene todas las tablas del schema SQL 
+Para Toño: 
+• Se pueden listar todas las materias disponibles 
+• Un estudiante puede matricularse en una materia 
+• Se puede ver el progreso de un estudiante en una materia 
+• Los reportes generan datos correctos basados en BD 
+• Función de actualizar progreso funciona cuando Pancho la llama 
+Para Pancho: 
+• Se pueden listar ejercicios de un subtema 
+• Al enviar código, se recibe retroalimentación de Lulu 
+• El historial de intentos se guarda correctamente 
+• Se pueden responder preguntas de quiz y se califican bien 
+• Las preguntas generadas por Lulu se almacenan correctamente 
+• El progreso se actualiza después de completar ejercicios/quizzes 
+Para Lulu: 
+• El rate limiter respeta el límite de 15 RPM 
+• El sistema de caché evita llamadas duplicadas a Gemini 
+• La validación de código retorna retroalimentación coherente 
+• Las preguntas generadas tienen formato correcto (JSON válido) 
+• El sistema de monitoreo registra todas las llamadas 
+• Las alertas se activan cuando se alcanza 80% del límite 
+• Los 3 prompts del documento están implementados 
+ 
