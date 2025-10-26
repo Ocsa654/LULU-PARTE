@@ -8,7 +8,8 @@
     "build": "tsc",
     "start": "node dist/presentation/server.js",
     "test": "jest",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "test:db": "ts-node test-database-connection.ts"
   },
   "keywords": [
     "gemini",
@@ -22,11 +23,16 @@
   "dependencies": {
     "@google/generative-ai": "^0.24.1",
     "@types/jsonwebtoken": "^9.0.10",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.14.2",
     "cors": "^2.8.5",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "jsonwebtoken": "^9.0.2",
     "md5": "^2.3.0",
+    "pg": "^8.16.3",
+    "reflect-metadata": "^0.2.2",
+    "typeorm": "^0.3.27",
     "winston": "^3.11.0"
   },
   "devDependencies": {
@@ -37,6 +43,7 @@
     "@typescript-eslint/eslint-plugin": "^6.15.0",
     "@typescript-eslint/parser": "^6.15.0",
     "eslint": "^8.56.0",
+    "ts-node": "^10.9.2",
     "ts-node-dev": "^2.0.0",
     "typescript": "^5.3.3"
   }

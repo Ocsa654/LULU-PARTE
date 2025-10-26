@@ -1,12 +1,18 @@
 import { GenerarPreguntasRequest, GenerarPreguntasResponse, PreguntaGenerada } from '../../domain/entities/QuestionGeneration';
 import { IGeminiClient } from '../../domain/interfaces/IGeminiClient';
 import { ICacheService } from '../../domain/interfaces/ICacheService';
+import { PreguntaQuizRepository } from '../../infrastructure/database/repositories/PreguntaQuizRepository';
+import { DificultadPregunta } from '../../infrastructure/database/models/PreguntaQuiz';
 
 export class GenerateQuestionsUseCase {
+  private preguntaQuizRepo: PreguntaQuizRepository;
+
   constructor(
     private geminiClient: IGeminiClient,
     private cacheService: ICacheService
-  ) {}
+  ) {
+    this.preguntaQuizRepo = new PreguntaQuizRepository();
+  }
 
   async execute(request: GenerarPreguntasRequest): Promise<GenerarPreguntasResponse> {
     console.log('📝 [UseCase] Generando preguntas...');
@@ -77,6 +83,36 @@ export class GenerateQuestionsUseCase {
       // 6. Guardar en caché si hay preguntas válidas
       if (preguntasValidas.length > 0) {
         await this.cacheService.guardarPreguntasEnCache(request.subtema_id, preguntasValidas);
+        
+        // 6.5 Guardar en base de datos
+        try {
+          let guardadas = 0;
+          for (const pregunta of preguntasValidas) {
+            const result = await this.preguntaQuizRepo.guardarPregunta({
+              subtemaId: request.subtema_id,
+              preguntaTexto: pregunta.texto,
+              dificultad: this.mapearDificultad(pregunta.dificultad || request.dificultad),
+              opciones: pregunta.opciones.map((opcion: any, index: number) => ({
+                textoOpcion: opcion.texto,
+                esCorrecta: opcion.es_correcta,
+                explicacion: opcion.explicacion,
+                orden: index + 1
+              })),
+              retroalimentacionCorrecta: pregunta.retroalimentacion_correcta,
+              retroalimentacionIncorrecta: pregunta.retroalimentacion_incorrecta,
+              conceptoClave: pregunta.concepto_clave,
+              modeloLlmUsado: process.env.GEMINI_MODEL || 'gemini-2.5-flash'
+            });
+            if (result) guardadas++;
+          }
+          if (guardadas > 0) {
+            console.log(`💾 [UseCase] ${guardadas} preguntas guardadas en BD`);
+          } else {
+            console.log('⚠️ [UseCase] BD no disponible - Solo guardado en caché');
+          }
+        } catch (dbError: any) {
+          console.warn('⚠️ [UseCase] Error al guardar preguntas en BD (continuando):', dbError.message);
+        }
       }
 
       // 7. Retornar respuesta
@@ -160,5 +196,15 @@ FORMATO DE RESPUESTA (JSON puro, sin markdown):
       retroalimentacion_incorrecta: p.retroalimentacion_incorrecta,
       concepto_clave: p.concepto_clave
     }));
+  }
+
+  private mapearDificultad(dificultad: string): DificultadPregunta {
+    const mapa: Record<string, DificultadPregunta> = {
+      'basica': DificultadPregunta.BASICA,
+      'básica': DificultadPregunta.BASICA,
+      'intermedia': DificultadPregunta.INTERMEDIA,
+      'avanzada': DificultadPregunta.AVANZADA
+    };
+    return mapa[dificultad.toLowerCase()] || DificultadPregunta.INTERMEDIA;
   }
 }

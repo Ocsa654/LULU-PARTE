@@ -38,6 +38,20 @@ export function createGeminiRoutes(geminiController: GeminiController): Router {
   router.delete('/chat', authMiddleware, geminiController.limpiarChat);
 
   /**
+   * POST /api/v1/gemini/explicar-concepto
+   * Explicar un concepto de programación
+   * 🔒 Requiere autenticación
+   */
+  router.post('/explicar-concepto', authMiddleware, geminiController.explicarConcepto);
+
+  /**
+   * POST /api/v1/gemini/generar-explicacion
+   * Explicar código línea por línea
+   * 🔒 Requiere autenticación
+   */
+  router.post('/generar-explicacion', authMiddleware, geminiController.generarExplicacion);
+
+  /**
    * GET /api/v1/gemini/stats
    * Estadísticas de rate limiter
    * 📊 Ruta pública (sin autenticación)

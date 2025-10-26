@@ -13,7 +13,9 @@ import { ChatAssistantUseCase } from '../application/use-cases/ChatAssistantUseC
 
 // Presentation
 import { GeminiController } from './controllers/GeminiController';
+import { RetroalimentacionController } from './controllers/RetroalimentacionController';
 import { createGeminiRoutes } from './routes/gemini.routes';
+import { createRetroalimentacionRoutes } from './routes/retroalimentacion.routes';
 
 dotenv.config();
 
@@ -76,15 +78,20 @@ export class App {
       geminiClient
     );
 
-    // Controller
+    // Controllers
     const geminiController = new GeminiController(
       validateCodeUseCase,
       generateQuestionsUseCase,
       chatAssistantUseCase
     );
 
+    const retroalimentacionController = new RetroalimentacionController(
+      geminiClient
+    );
+
     // Routes
     this.app.use('/api/v1/gemini', createGeminiRoutes(geminiController));
+    this.app.use('/api/v1/retroalimentacion', createRetroalimentacionRoutes(retroalimentacionController));
 
     // 404 Handler
     this.app.use((req: Request, res: Response) => {
@@ -127,12 +134,19 @@ export class App {
       console.log(`🚀  API: http://localhost:${port}/api/v1/gemini`);
       console.log('🚀 ================================================');
       console.log('');
-      console.log('📝 Endpoints disponibles:');
+      console.log('📝 Endpoints de Gemini:');
       console.log('   POST /api/v1/gemini/validate-code');
       console.log('   POST /api/v1/gemini/generate-questions');
       console.log('   POST /api/v1/gemini/chat');
       console.log('   DELETE /api/v1/gemini/chat');
+      console.log('   POST /api/v1/gemini/explicar-concepto');
+      console.log('   POST /api/v1/gemini/generar-explicacion');
       console.log('   GET /api/v1/gemini/stats');
+      console.log('');
+      console.log('📝 Endpoints de Retroalimentación:');
+      console.log('   GET /api/v1/retroalimentacion/:usuario_id');
+      console.log('   POST /api/v1/retroalimentacion/generar');
+      console.log('   GET /api/v1/retroalimentacion/stats');
       console.log('');
       console.log('✅ Servidor listo para recibir peticiones');
       console.log('');

@@ -1,12 +1,18 @@
 import { CodeValidationRequest, CodeValidationResponse } from '../../domain/entities/CodeValidationRequest';
 import { IGeminiClient } from '../../domain/interfaces/IGeminiClient';
 import { ICacheService } from '../../domain/interfaces/ICacheService';
+import { RetroalimentacionRepository } from '../../infrastructure/database/repositories/RetroalimentacionRepository';
+import crypto from 'crypto';
 
 export class ValidateCodeUseCase {
+  private retroalimentacionRepo: RetroalimentacionRepository;
+
   constructor(
     private geminiClient: IGeminiClient,
     private cacheService: ICacheService
-  ) {}
+  ) {
+    this.retroalimentacionRepo = new RetroalimentacionRepository();
+  }
 
   async execute(request: CodeValidationRequest): Promise<CodeValidationResponse> {
     console.log('🔍 [UseCase] Iniciando validación de código...');
@@ -64,6 +70,35 @@ export class ValidateCodeUseCase {
         request.usuario_id,
         response
       );
+
+      // Guardar en base de datos (caché persistente)
+      try {
+        const codigoHash = crypto.createHash('md5').update(request.codigo_enviado).digest('hex');
+        
+        const guardado = await this.retroalimentacionRepo.guardarRetroalimentacion({
+          usuarioId: request.usuario_id,
+          tipoRetroalimentacion: 'validacion_codigo',
+          contenidoRetroalimentacion: response.retroalimentacion_llm,
+          contextoOriginal: {
+            ejercicio_id: request.ejercicio_id,
+            codigo_hash: codigoHash,
+            codigo_enviado: request.codigo_enviado,
+            lenguaje: request.lenguaje,
+            resultado: response.resultado,
+            puntos: response.puntos_obtenidos,
+          },
+          modeloLlmUsado: process.env.GEMINI_MODEL || 'gemini-2.5-flash',
+        });
+        
+        if (guardado) {
+          console.log('💾 [UseCase] Retroalimentación guardada en BD');
+        } else {
+          console.log('⚠️ [UseCase] BD no disponible - Solo guardado en caché');
+        }
+      } catch (dbError: any) {
+        console.warn('⚠️ [UseCase] Error al guardar en BD (continuando):', dbError.message);
+        // No fallar si la BD tiene problemas, solo loguear
+      }
 
       console.log(`✓ [UseCase] Validación completada: ${response.resultado}`);
       return response;
